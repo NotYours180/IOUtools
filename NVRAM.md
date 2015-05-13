@@ -4,7 +4,12 @@ This documents the IOU NVRAM structure. It is based on the information
 in dynamips' fs_nvram.h, see
 https://github.com/GNS3/dynamips/blob/master/common/fs_nvram.h
 
-| Overall Layout        |
+Only the first half of the NVRAM is used, the second half is zero.
+
+The structure is almost identical to the Dynamips NVRAM layout.
+The major difference is the missing NVRAM header in IOU.
+
+| Layout of first half  |
 -------------------------
 | Startup Header        |
 | Startup Configuration |
@@ -15,6 +20,7 @@ https://github.com/GNS3/dynamips/blob/master/common/fs_nvram.h
 | File Area             |
 
 All data is stored in big endian order, high byte first.
+
 
 ## Startup Header
 
@@ -35,6 +41,11 @@ All data is stored in big endian order, high byte first.
 
 Total 36 bytes
 
+The checksum is basically the sum of all 2-byte-words in the first half
+of the NVRAM. For further details have a look into iou_import, function
+checksum.
+
+
 ## Startup Configuration
 
 In raw format the configuration is stored without any changes.
@@ -43,11 +54,13 @@ way as in the unix compress program, see
 http://en.wikipedia.org/wiki/Compress .
 It uses the LZW algorithm.
 
+
 ## Padding
 
-The startup-config is padded to the aligment of 4.
+The startup-config is padded to an aligment of 4.
 In IOS <= 15.0, if padding takes places, an additional 4 byte
 padding is added.
+
 
 ## Private Header
 
@@ -61,7 +74,13 @@ padding is added.
 
 Total 16 bytes
 
+
+## Private Configuration
+
+The private configuration is always stored in raw format.
+
+
 ## File Area
 
-Each file block is 1024 bytes long and starts with the magic
-number 0xDCBA. An unused/erased block is all 0.
+The files are growing top-down. Each file block is 1024 bytes long and
+starts with the magic number 0xDCBA. An unused/erased block is all zero.
