@@ -4,13 +4,13 @@ This documents the IOU NVRAM structure. It is based on the information
 in dynamips' fs_nvram.h, see
 https://github.com/GNS3/dynamips/blob/master/common/fs_nvram.h
 
-Only the first half of the NVRAM is used, the second half is zero.
+Only the first half of the NVRAM is used, the second half is zero filled.
 
 The structure is almost identical to the Dynamips NVRAM layout.
 The major difference is the missing NVRAM header in IOU.
 
 | Layout of first half  |
--------------------------
+|-----------------------|
 | Startup Header        |
 | Startup Configuration |
 | Padding               |
