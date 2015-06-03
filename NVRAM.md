@@ -9,7 +9,7 @@ Only the first half of the NVRAM is used, the second half is zero filled.
 The structure is almost identical to the Dynamips NVRAM layout.
 The major difference is the missing NVRAM header in IOU.
 
-| Layout of first half  |
+| Layout of first Half  |
 |-----------------------|
 | Startup Header        |
 | Startup Configuration |
@@ -29,7 +29,7 @@ All data is stored in big endian order, high byte first.
 |   0 |   2 | Magic 0xABCD                    |
 |   2 |   2 | Format, 1 = raw, 2 = compressed |
 |   4 |   2 | Checksum                        |
-|   6 |   2 | IOS version, 0x0F04 = 15.4      |
+|   6 |   2 | IOS version, e.g. 0x0F04 = 15.4 |
 |   8 |   4 | Start address                   |
 |  12 |   4 | End address                     |
 |  16 |   4 | Length                          |
@@ -48,10 +48,9 @@ checksum.
 
 ## Startup Configuration
 
-In raw format the configuration is stored without any changes.
-In compressed format, the configuration is compressed the same
-way as in the unix compress program, see
-http://en.wikipedia.org/wiki/Compress .
+In raw format the configuration is stored unchanged.
+In compressed format, the configuration is packed the same way as in
+the unix compress program, see http://en.wikipedia.org/wiki/Compress .
 It uses the LZW algorithm.
 
 
@@ -82,5 +81,6 @@ The private configuration is always stored in raw format.
 
 ## File Area
 
-The files are growing top-down. Each file block is 1024 bytes long and
-starts with the magic number 0xDCBA. An unused/erased block is all zero.
+The files are growing from the end of the area down to the lower offsets.
+Each file block is 1024 bytes long and starts with the magic number 0xDCBA.
+An unused/erased block is all zero.
