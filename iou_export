@@ -181,7 +181,9 @@ def nvram_export(nvram):
     # alignment to multiple of 4
     offset = (offset+3) & ~3
     # check for additonal offset of 4
-    if len(nvram) >= offset + 6 and get_uint16(nvram, offset + 4) == 0xFEDC:
+    if len(nvram) >= offset + 8 and \
+       get_uint16(nvram, offset + 4) == 0xFEDC and \
+       get_uint16(nvram, offset + 6) == 1:
         offset += 4
 
     # extract private config

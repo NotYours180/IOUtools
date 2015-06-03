@@ -125,14 +125,17 @@ def nvram_import(nvram, startup, private, size):
     # calculate max. config size
     max_config = nvram_len - 2*1024             # reserve 2k for files
     idx = max_config
+    empty_sector = array('B', [0] * 1024)
     while True:
         idx -= 1024
         if idx < config_len:
             break
-        fs_magic = get_uint16(nvram, idx)
-        if fs_magic == 0xDCBA:
+        # if valid file header:
+        if get_uint16(nvram, idx+0) == 0xDCBA and \
+           get_uint16(nvram, idx+4) < 8 and \
+           get_uint16(nvram, idx+6) <= 992:
             max_config = idx
-        elif fs_magic != 0:
+        elif nvram[idx:idx+1024] != empty_sector:
             break
 
     # import startup config
@@ -225,7 +228,7 @@ except (IOError, OSError) as err:
 try:
     nvram = nvram_import(nvram, startup, private, args.create)
 except ValueError as err:
-    sys.stderr.write("nvram_export: {}\n".format(err))
+    sys.stderr.write("nvram_import: {}\n".format(err))
     sys.exit(3)
 
 try:
