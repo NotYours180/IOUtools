@@ -24,20 +24,20 @@ All data is stored in big endian order, high byte first.
 
 ## Startup Header
 
-| Off | Len | Usage                           |
-|----:|----:|---------------------------------|
-|   0 |   2 | Magic 0xABCD                    |
-|   2 |   2 | Format, 1 = raw, 2 = compressed |
-|   4 |   2 | Checksum                        |
-|   6 |   2 | IOS version, e.g. 0x0F04 = 15.4 |
-|   8 |   4 | Start address                   |
-|  12 |   4 | End address                     |
-|  16 |   4 | Length                          |
-|  20 |   4 | ??? 0                           |
-|  24 |   4 | ??? 0 = raw, 1 = compressed     |
-|  28 |   2 | ??? 0 = raw, 1 = compressed     |
-|  30 |   2 | ??? 0                           |
-|  32 |   4 | uncompressed len, raw = 0       |
+| Off | Len | Usage                              |
+|----:|----:|------------------------------------|
+|   0 |   2 | Magic 0xABCD                       |
+|   2 |   2 | Format, 1 = raw, 2 = compressed    |
+|   4 |   2 | Checksum                           |
+|   6 |   2 | IOS version, e.g. 0x0F04 = 15.4    |
+|   8 |   4 | Start address                      |
+|  12 |   4 | End address                        |
+|  16 |   4 | Length                             |
+|  20 |   4 | ??? 0                              |
+|  24 |   4 | ??? 0 = raw, 1 = compressed        |
+|  28 |   2 | ??? 0 = raw, 1 = compressed        |
+|  30 |   2 | ??? 0                              |
+|  32 |   4 | uncompressed len, raw = 0          |
 
 Total 36 bytes
 
@@ -63,13 +63,13 @@ padding is added.
 
 ## Private Header
 
-| Off | Len | Usage                           |
-|----:|----:|---------------------------------|
-|   0 |   2 | Magic 0xFEDC                    |
-|   2 |   2 | Format, only 1 = raw            |
-|   4 |   4 | Start address                   |
-|   8 |   4 | End address                     |
-|  12 |   4 | Length                          |
+| Off | Len | Usage                              |
+|----:|----:|------------------------------------|
+|   0 |   2 | Magic 0xFEDC                       |
+|   2 |   2 | Format, only 1 = raw               |
+|   4 |   4 | Start address                      |
+|   8 |   4 | End address                        |
+|  12 |   4 | Length                             |
 
 Total 16 bytes
 
@@ -81,6 +81,19 @@ The private configuration is always stored in raw format.
 
 ## File Area
 
-The files are growing from the end of the area down to the lower offsets.
+The files are growing from the end of the area down to lower offsets.
 Each file block is 1024 bytes long and starts with the magic number 0xDCBA.
 An unused/erased block is all zero.
+
+## File Sector
+
+| Off | Len | Usage                              |
+|----:|----:|------------------------------------|
+|   0 |   2 | Magic 0xDCBA                       |
+|   2 |   2 | Next sector                        |
+|   4 |   2 | Flags, bit 0=start, 1=end, 2=no RW |
+|   6 |   2 | Length of data in this block       |
+|   8 |  24 | File name, NUL terminated          |
+|  32 | 992 | Data                               |
+
+Total 1024 bytes
