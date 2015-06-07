@@ -183,58 +183,59 @@ def nvram_import(nvram, startup, private, size):
     return new_nvram.tostring()
 
 
-# Main program
+if __name__ == '__main__':
+    # Main program
 
-def check_size(string):
+    def check_size(string):
+        try:
+            value = int(string)
+        except ValueError:
+            raise argparse.ArgumentTypeError('invalid int value: ' + string)
+        if value < 8 or value > 1024:
+            raise argparse.ArgumentTypeError('size must be 8..1024')
+        return value
+
+    parser = argparse.ArgumentParser(description='%(prog)s imports startup/private configuration into IOU NVRAM file.')
+    parser.add_argument('-c', '--create', metavar='size', type=check_size,
+                        help='create NVRAM file, size in kByte')
+    parser.add_argument('nvram', metavar='NVRAM',
+                        help='NVRAM file')
+    parser.add_argument('startup', metavar='startup-config',
+                        help='startup configuration')
+    parser.add_argument('private', metavar='private-config', nargs='?',
+                        help='private configuration')
+    args = parser.parse_args()
+
     try:
-        value = int(string)
-    except ValueError:
-        raise argparse.ArgumentTypeError('invalid int value: ' + string)
-    if value < 8 or value > 1024:
-        raise argparse.ArgumentTypeError('size must be 8..1024')
-    return value
-
-parser = argparse.ArgumentParser(description='%(prog)s imports startup/private configuration into IOU NVRAM file.')
-parser.add_argument('-c', '--create', metavar='size', type=check_size,
-                    help='create NVRAM file, size in kByte')
-parser.add_argument('nvram', metavar='NVRAM',
-                    help='NVRAM file')
-parser.add_argument('startup', metavar='startup-config',
-                    help='startup configuration')
-parser.add_argument('private', metavar='private-config', nargs='?',
-                    help='private configuration')
-args = parser.parse_args()
-
-try:
-    if args.create is None:
-        fd = open(args.nvram, 'rb')
-        nvram = fd.read()
+        if args.create is None:
+            fd = open(args.nvram, 'rb')
+            nvram = fd.read()
+            fd.close()
+        else:
+            nvram = None
+        fd = open(args.startup, 'rb')
+        startup = fd.read()
         fd.close()
-    else:
-        nvram = None
-    fd = open(args.startup, 'rb')
-    startup = fd.read()
-    fd.close()
-    if args.private is None:
-        private = None
-    else:
-        fd = open(args.private, 'rb')
-        private = fd.read()
+        if args.private is None:
+            private = None
+        else:
+            fd = open(args.private, 'rb')
+            private = fd.read()
+            fd.close()
+    except (IOError, OSError) as err:
+        sys.stderr.write("Error reading file: {}\n".format(err))
+        sys.exit(1)
+
+    try:
+        nvram = nvram_import(nvram, startup, private, args.create)
+    except ValueError as err:
+        sys.stderr.write("nvram_import: {}\n".format(err))
+        sys.exit(3)
+
+    try:
+        fd = open(args.nvram, 'wb')
+        fd.write(nvram)
         fd.close()
-except (IOError, OSError) as err:
-    sys.stderr.write("Error reading file: {}\n".format(err))
-    sys.exit(1)
-
-try:
-    nvram = nvram_import(nvram, startup, private, args.create)
-except ValueError as err:
-    sys.stderr.write("nvram_import: {}\n".format(err))
-    sys.exit(3)
-
-try:
-    fd = open(args.nvram, 'wb')
-    fd.write(nvram)
-    fd.close()
-except (IOError, OSError) as err:
-    sys.stderr.write("Error writing file: {}\n".format(err))
-    sys.exit(1)
+    except (IOError, OSError) as err:
+        sys.stderr.write("Error writing file: {}\n".format(err))
+        sys.exit(1)

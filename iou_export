@@ -197,42 +197,43 @@ def nvram_export(nvram):
     return (startup, private)
 
 
-# Main program
+if __name__ == '__main__':
+    # Main program
 
-parser = argparse.ArgumentParser(description='%(prog)s exports startup/private configuration from IOU NVRAM file.')
-parser.add_argument('nvram', metavar='NVRAM',
-                    help='NVRAM file')
-parser.add_argument('startup', metavar='startup-config',
-                    help='startup configuration')
-parser.add_argument('private', metavar='private-config', nargs='?',
-                    help='private configuration')
-args = parser.parse_args()
+    parser = argparse.ArgumentParser(description='%(prog)s exports startup/private configuration from IOU NVRAM file.')
+    parser.add_argument('nvram', metavar='NVRAM',
+                        help='NVRAM file')
+    parser.add_argument('startup', metavar='startup-config',
+                        help='startup configuration')
+    parser.add_argument('private', metavar='private-config', nargs='?',
+                        help='private configuration')
+    args = parser.parse_args()
 
-try:
-    fd = open(args.nvram, 'rb')
-    nvram = fd.read()
-    fd.close()
-except (IOError, OSError) as err:
-    sys.stderr.write("Error reading file: {}\n".format(err))
-    sys.exit(1)
+    try:
+        fd = open(args.nvram, 'rb')
+        nvram = fd.read()
+        fd.close()
+    except (IOError, OSError) as err:
+        sys.stderr.write("Error reading file: {}\n".format(err))
+        sys.exit(1)
 
-try:
-    startup, private = nvram_export(nvram)
-except ValueError as err:
-    sys.stderr.write("nvram_export: {}\n".format(err))
-    sys.exit(3)
+    try:
+        startup, private = nvram_export(nvram)
+    except ValueError as err:
+        sys.stderr.write("nvram_export: {}\n".format(err))
+        sys.exit(3)
 
-try:
-    fd = open(args.startup, 'wb')
-    fd.write(startup)
-    fd.close()
-    if args.private is not None:
-        if private is None:
-            sys.stderr.write("Warning: No private config\n")
-        else:
-            fd = open(args.private, 'wb')
-            fd.write(private)
-            fd.close()
-except (IOError, OSError) as err:
-    sys.stderr.write("Error writing file: {}\n".format(err))
-    sys.exit(1)
+    try:
+        fd = open(args.startup, 'wb')
+        fd.write(startup)
+        fd.close()
+        if args.private is not None:
+            if private is None:
+                sys.stderr.write("Warning: No private config\n")
+            else:
+                fd = open(args.private, 'wb')
+                fd.write(private)
+                fd.close()
+    except (IOError, OSError) as err:
+        sys.stderr.write("Error writing file: {}\n".format(err))
+        sys.exit(1)
