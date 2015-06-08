@@ -95,15 +95,20 @@ def nvram_import(nvram, startup, private, size):
     BASE_ADDRESS = 0x10000000
     DEFAULT_IOS  = 0x0F04               # IOS 15.4
 
-    if size is None:
-        nvram = bytearray(nvram)
-    else:
+    # check size parameter
+    if size is not None and (size < 8 or size > 1024):
+        raise ValueError('invalid size')
+
+    # create new nvram if nvram is empty or has wrong size
+    if nvram is None or (size is not None and len(nvram) != size*1024):
         nvram = bytearray([0] * (size*1024))
+    else:
+        nvram = bytearray(nvram)
 
     # check nvram size
     nvram_len = len(nvram)
     if nvram_len < 8*1024 or nvram_len > 1024*1024 or nvram_len % 1024 != 0:
-        raise ValueError('invalid length')
+        raise ValueError('invalid NVRAM length')
     nvram_len = nvram_len // 2
 
     # get size of current config
