@@ -57,7 +57,7 @@ It uses the LZW algorithm.
 ## Padding
 
 The startup-config is padded to an aligment of 4.
-In IOS <= 15.0, if padding takes places, an additional 4 byte
+In IOS <= 15.0, if padding takes place, an additional 4 byte
 padding is added.
 
 
