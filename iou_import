@@ -36,7 +36,6 @@ optional arguments:
 """
 
 import struct
-import sys
 
 
 # calculate padding
@@ -170,6 +169,7 @@ def nvram_import(nvram, startup, private, size):
 if __name__ == '__main__':
     # Main program
     import argparse
+    import sys
 
     def check_size(string):
         try:

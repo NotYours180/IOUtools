@@ -38,7 +38,6 @@ optional arguments:
 """
 
 import struct
-import sys
 
 
 # Uncompress data in .Z file format.
@@ -195,6 +194,7 @@ def nvram_export(nvram):
 if __name__ == '__main__':
     # Main program
     import argparse
+    import sys
 
     parser = argparse.ArgumentParser(description='%(prog)s exports startup/private configuration from IOU NVRAM file.')
     parser.add_argument('nvram', metavar='NVRAM',
