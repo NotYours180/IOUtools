@@ -65,9 +65,6 @@ def uncompress_LZC(data):
     num_items = 1 << max_bits
     blockmode = (in_data[2] & 0x80) != 0
 
-    if in_len == 3:
-        return out_data
-
     in_pos    = 3
     start_pos = in_pos
     num_bits  = LZC_NUM_BITS_MIN
@@ -75,23 +72,14 @@ def uncompress_LZC(data):
     head      = 256
     if blockmode:
         head += 1
+    first_sym = True
+
     # initialize dictionary
     comp_dict = [None] * num_items
     for i in range(0, 256):
         comp_dict[i] = bytes(bytearray([i]))
 
-    buf = 0
-    buf_bits = 0
-
-    # get first symbol
-    while buf_bits < num_bits:
-        buf |= in_data[in_pos] << buf_bits
-        buf_bits += 8
-        in_pos += 1
-    buf, prev = divmod(buf, dict_size)
-    buf_bits -= num_bits
-    out_data.extend(comp_dict[prev])
-
+    buf = buf_bits = 0
     while in_pos < in_len:
         # get next symbol
         while buf_bits < num_bits:
@@ -113,16 +101,14 @@ def uncompress_LZC(data):
             num_bits = LZC_NUM_BITS_MIN
             dict_size = 1 << num_bits
             start_pos = in_pos
-            # get first symbol
-            if in_pos >= in_len:
-                break
-            while buf_bits < num_bits:
-                buf |= in_data[in_pos] << buf_bits
-                buf_bits += 8
-                in_pos += 1
-            buf, prev = divmod(buf, dict_size)
-            buf_bits -= num_bits
-            out_data.extend(comp_dict[prev])
+            first_sym = True
+            continue
+
+        # first symbol
+        if first_sym:
+            first_sym = False
+            prev = symbol
+            out_data.extend(comp_dict[symbol])
             continue
 
         # dictionary full
