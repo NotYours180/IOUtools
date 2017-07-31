@@ -40,9 +40,10 @@ optional arguments:
 import struct
 
 
-# Uncompress data in .Z file format.
-# Ported from dynamips' fs_nvram.c to python
-# Adapted from 7zip's ZDecoder.cpp, which is licensed under LGPL 2.1.
+# Uncompress data in LZC format, .Z file format
+# LZC uses the LZW compression algorithm with a variable dictionary size
+# For LZW see https://en.wikipedia.org/wiki/Lempel–Ziv–Welch
+# Performance: about 1 MByte/sec, 15-50 times slower than C implementation
 def uncompress_LZC(data):
     LZC_NUM_BITS_MIN = 9
     LZC_NUM_BITS_MAX = 16
@@ -58,83 +59,95 @@ def uncompress_LZC(data):
     if in_data[0] != 0x1F or in_data[1] != 0x9D:
         raise ValueError('invalid header')
 
-    maxbits   = in_data[2] & 0x1F
-    numItems  = 1 << maxbits
-    blockMode = (in_data[2] & 0x80) != 0
-    if maxbits < LZC_NUM_BITS_MIN or maxbits > LZC_NUM_BITS_MAX:
+    max_bits = in_data[2] & 0x1F
+    if max_bits < LZC_NUM_BITS_MIN or max_bits > LZC_NUM_BITS_MAX:
         raise ValueError('not supported')
+    num_items = 1 << max_bits
+    blockmode = (in_data[2] & 0x80) != 0
 
-    parents  = [0] * numItems
-    suffixes = [0] * numItems
+    if in_len == 3:
+        return out_data
 
-    in_pos  = 3
-    numBits = LZC_NUM_BITS_MIN
-    head    = 256
-    if blockMode:
+    in_pos    = 3
+    start_pos = in_pos
+    num_bits  = LZC_NUM_BITS_MIN
+    dict_size = 1 << num_bits
+    head      = 256
+    if blockmode:
         head += 1
+    # initialize dictionary
+    comp_dict = [None] * num_items
+    for i in range(0, 256):
+        comp_dict[i] = bytes(bytearray([i]))
 
-    needPrev   = 0
-    bitPos     = 0
-    numBufBits = 0
+    buf = 0
+    buf_bits = 0
 
-    parents[256]  = 0
-    suffixes[256] = 0
+    # get first symbol
+    while buf_bits < num_bits:
+        buf |= in_data[in_pos] << buf_bits
+        buf_bits += 8
+        in_pos += 1
+    buf, prev = divmod(buf, dict_size)
+    buf_bits -= num_bits
+    out_data.extend(comp_dict[prev])
 
-    buf_extend = bytearray([0] * 3)
+    while in_pos < in_len:
+        # get next symbol
+        while buf_bits < num_bits:
+            buf |= in_data[in_pos] << buf_bits
+            buf_bits += 8
+            in_pos += 1
+        buf, symbol = divmod(buf, dict_size)
+        buf_bits -= num_bits
 
-    while True:
-        # fill buffer, when empty
-        if numBufBits == bitPos:
-            buf_len = min(in_len - in_pos, numBits)
-            buf = in_data[in_pos:in_pos+buf_len] + buf_extend
-            numBufBits = buf_len << 3
-            bitPos = 0
-            in_pos += buf_len
-
-        # extract next symbol
-        bytePos = bitPos >> 3
-        symbol = buf[bytePos] | buf[bytePos + 1] << 8 | buf[bytePos + 2] << 16
-        symbol >>= bitPos & 7
-        symbol &= (1 << numBits) - 1
-        bitPos += numBits
-
-        # check for special conditions: end, bad data, re-initialize dictionary
-        if bitPos > numBufBits:
-            break
-        if symbol >= head:
-            raise ValueError('invalid data')
-        if blockMode and symbol == 256:
-            numBufBits = bitPos = 0
-            numBits = LZC_NUM_BITS_MIN
+        # re-initialize dictionary
+        if blockmode and symbol == 256:
+            # skip to next buffer boundary
+            buf = buf_bits = 0
+            next_off = (in_pos - start_pos + num_bits - 1) \
+                       // num_bits * num_bits
+            in_pos = start_pos + next_off
+            # reset to LZC_NUM_BITS_MIN
             head = 257
-            needPrev = 0
+            num_bits = LZC_NUM_BITS_MIN
+            dict_size = 1 << num_bits
+            start_pos = in_pos
+            # get first symbol
+            if in_pos >= in_len:
+                break
+            while buf_bits < num_bits:
+                buf |= in_data[in_pos] << buf_bits
+                buf_bits += 8
+                in_pos += 1
+            buf, prev = divmod(buf, dict_size)
+            buf_bits -= num_bits
+            out_data.extend(comp_dict[prev])
             continue
 
-        # convert symbol to string
-        stack = []
-        cur = symbol
-        while cur >= 256:
-            stack.append(suffixes[cur])
-            cur = parents[cur]
-        stack.append(cur)
-        if needPrev:
-            suffixes[head - 1] = cur
-            if symbol == head - 1:
-                stack[0] = cur
-        stack.reverse()
-        out_data.extend(stack)
+        # dictionary full
+        if head >= num_items:
+            out_data.extend(comp_dict[symbol])
+            continue
 
-        # update parents, check for numBits change
-        if head < numItems:
-            needPrev = 1
-            parents[head] = symbol
-            head += 1
-            if head > (1 << numBits):
-                if numBits < maxbits:
-                    numBufBits = bitPos = 0
-                    numBits += 1
+        # update compression dictionary
+        if symbol < head:
+            comp_dict[head] = comp_dict[prev] + comp_dict[symbol][0:1]
+        elif symbol == head:
+            comp_dict[head] = comp_dict[prev] + comp_dict[prev][0:1]
         else:
-            needPrev = 0
+            raise ValueError('invalid data')
+        prev = symbol
+
+        # output symbol
+        out_data.extend(comp_dict[symbol])
+
+        # update head, check for num_bits change
+        head += 1
+        if head >= dict_size and num_bits < max_bits:
+            num_bits += 1
+            dict_size = 1 << num_bits
+            start_pos = in_pos
 
     return out_data
 
