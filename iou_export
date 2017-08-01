@@ -80,6 +80,7 @@ def uncompress_LZC(data):
         comp_dict[i] = bytes(bytearray([i]))
 
     buf = buf_bits = 0
+    in_data.extend([0] * 4)
     while in_pos < in_len:
         # get next symbol
         while buf_bits < num_bits:
@@ -107,6 +108,8 @@ def uncompress_LZC(data):
         # first symbol
         if first_sym:
             first_sym = False
+            if symbol >= 256:
+                raise ValueError('invalid data')
             prev = symbol
             out_data.extend(comp_dict[symbol])
             continue
@@ -134,6 +137,9 @@ def uncompress_LZC(data):
             num_bits += 1
             dict_size = 1 << num_bits
             start_pos = in_pos
+
+    if in_pos != in_len:
+        raise ValueError('invalid data')
 
     return out_data
 
