@@ -146,7 +146,7 @@ def nvram_export(nvram):
     offset = 0
     # extract startup config
     try:
-        (magic, format, _, _, _, _, length, _, _, _, _, _) = \
+        (magic, data_format, _, _, _, _, length, _, _, _, _, _) = \
             struct.unpack_from('>HHHHIIIIIHHI', nvram, offset=offset)
         offset += 36
         if magic != 0xABCD:
@@ -158,7 +158,7 @@ def nvram_export(nvram):
         raise ValueError('invalid length')
 
     # uncompress startup config
-    if format == 2:
+    if data_format == 2:
         try:
             startup = uncompress_LZC(startup)
         except ValueError as err:
@@ -170,15 +170,15 @@ def nvram_export(nvram):
         length += (4 - length % 4) % 4          # alignment to multiple of 4
         offset += length
         # check for additonal offset of 4
-        (magic, format) = struct.unpack_from('>HH', nvram, offset=offset+4)
-        if magic == 0xFEDC and format == 1:
+        (magic, data_format) = struct.unpack_from('>HH', nvram, offset=offset+4)
+        if magic == 0xFEDC and data_format == 1:
             offset += 4
 
         # extract private config
-        (magic, format, _, _, length) = \
+        (magic, data_format, _, _, length) = \
             struct.unpack_from('>HHIII', nvram, offset=offset)
         offset += 16
-        if magic == 0xFEDC and format == 1:
+        if magic == 0xFEDC and data_format == 1:
             if len(nvram) < offset+length:
                 raise ValueError('invalid length')
             private = nvram[offset:offset+length]

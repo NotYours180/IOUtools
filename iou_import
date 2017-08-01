@@ -55,8 +55,8 @@ def checksum(data, start, end):
         chk += word
 
     # add remaining words, ignoring old checksum at offset 4
-    format = '>{:d}H'.format((end - start - 6) // 2)
-    for word in struct.unpack_from(format, data, start+6):
+    struct_format = '>{:d}H'.format((end - start - 6) // 2)
+    for word in struct.unpack_from(struct_format, data, start+6):
         chk += word
 
     # handle 16 bit overflow
